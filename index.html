@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Practice Log">
+<meta name="theme-color" content="#12100d">
+<title>Practice Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #c9b48a;
+    --gold-dim: rgba(180,160,120,0.15);
+    --gold-border: rgba(180,160,120,0.3);
+    --gold-border-strong: rgba(180,160,120,0.6);
+    --text: #e8dcc8;
+    --text-dim: rgba(255,255,255,0.35);
+    --text-faint: rgba(255,255,255,0.2);
+    --surface: rgba(255,255,255,0.04);
+    --surface-hover: rgba(255,255,255,0.08);
+    --border: rgba(255,255,255,0.09);
+    --bg: #12100d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: linear-gradient(160deg, #12100d 0%, #1a1710 50%, #0f0e0b 100%);
+    min-height: 100vh;
+    min-height: 100dvh;
+    font-family: 'DM Mono', monospace;
+    color: var(--text);
+    overscroll-behavior: none;
+  }
+
+  /* ── Layout ── */
+  .screen { display: none; padding: 40px 24px 100px; max-width: 600px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* ── Nav bar ── */
+  nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(15,14,11,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-around; align-items: center;
+    padding: 12px 0 max(16px, env(safe-area-inset-bottom));
+    z-index: 100;
+  }
+  nav button {
+    background: none; border: none; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-faint); transition: color .2s;
+    padding: 4px 16px;
+  }
+  nav button.active { color: var(--gold); }
+  nav button svg { width: 20px; height: 20px; stroke-width: 1.5; }
+
+  /* ── Header ── */
+  .eyebrow { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: rgba(180,160,120,.5); margin-bottom: 4px; }
+  h1 { font-family: 'Cormorant Garamond', serif; font-size: 34px; font-weight: 400; color: var(--text); letter-spacing: .01em; margin-bottom: 6px; }
+  .subtitle { font-size: 11px; color: var(--text-faint); letter-spacing: .06em; margin-bottom: 28px; }
+
+  /* ── Stats ── */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 32px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 14px; }
+  .stat-val { font-family: 'Cormorant Garamond', serif; font-size: 26px; color: var(--gold); font-weight: 600; line-height: 1; margin-bottom: 4px; }
+  .stat-lbl { font-size: 9px; color: var(--text-dim); letter-spacing: .1em; text-transform: uppercase; }
+
+  /* ── Add button ── */
+  .add-btn {
+    width: 100%; background: var(--gold-dim); border: 1px dashed var(--gold-border);
+    border-radius: 12px; color: rgba(180,160,120,.8); font-family: 'DM Mono', monospace;
+    font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
+    padding: 16px; cursor: pointer; margin-bottom: 20px; transition: background .2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .add-btn:active { background: rgba(180,160,120,.22); }
+
+  /* ── Entry card ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px 20px; cursor: pointer;
+    transition: background .2s, border-color .2s; margin-bottom: 10px;
+    active: background: var(--surface-hover);
+  }
+  .card:active { background: var(--surface-hover); border-color: var(--gold-border); }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .card-day { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--text); }
+  .card-date { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+  .card-right { text-align: right; flex-shrink: 0; margin-left: 12px; }
+  .card-dur { font-size: 13px; color: var(--gold); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip-type { background: var(--gold-dim); color: var(--gold); font-size: 10px; padding: 2px 10px; border-radius: 20px; letter-spacing: .04em; text-transform: uppercase; }
+  .chip-mood { background: rgba(255,255,255,.06); color: var(--text-dim); font-size: 10px; padding: 2px 10px; border-radius: 20px; }
+  .dots { display: flex; gap: 3px; margin-top: 6px; justify-content: flex-end; }
+  .dot { width: 5px; height: 5px; border-radius: 50%; }
+  .dot-on { background: var(--gold); }
+  .dot-off { background: rgba(255,255,255,.1); }
+  .card-quote { margin-top: 12px; font-family: 'Cormorant Garamond', serif; font-size: 14px; color: rgba(255,255,255,.38); font-style: italic; border-left: 2px solid var(--gold-border); padding-left: 10px; line-height: 1.5; }
+  .empty { text-align: center; color: var(--text-faint); font-family: 'Cormorant Garamond', serif; font-size: 18px; padding: 60px 0; font-style: italic; line-height: 1.6; }
+
+  /* ── Form ── */
+  .form-section { background: rgba(255,255,255,.03); border: 1px solid rgba(180,160,120,.15); border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+  .form-section-title { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: rgba(180,160,120,.5); margin-bottom: 18px; }
+  .lbl { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; display: block; }
+  .inp {
+    background: rgba(255,255,255,.05); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 14px; padding: 12px 14px; outline: none; width: 100%;
+    -webkit-appearance: none; transition: border-color .2s;
+  }
+  .inp:focus { border-color: var(--gold-border-strong); }
+  textarea.inp { min-height: 90px; resize: none; line-height: 1.6; }
+  .inp-gold { border-color: rgba(180,160,120,.2); }
+  .inp-gold:focus { border-color: var(--gold); }
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip-btn {
+    background: rgba(255,255,255,.05); border: 1px solid var(--border);
+    color: var(--text-dim); padding: 7px 14px; border-radius: 20px;
+    font-size: 12px; cursor: pointer; font-family: 'DM Mono', monospace;
+    transition: all .15s; user-select: none; -webkit-user-select: none;
+  }
+  .chip-btn.on { background: var(--gold-dim); border-color: var(--gold-border-strong); color: var(--gold); }
+
+  .int-row { display: flex; gap: 10px; align-items: center; padding-top: 4px; }
+  .int-dot {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06);
+    cursor: pointer; transition: all .15s;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: transparent;
+  }
+  .int-dot.on { background: var(--gold); border-color: var(--gold); color: #1a1710; font-weight: 600; }
+
+  .save-btn {
+    width: 100%; background: rgba(180,160,120,.18); border: 1px solid var(--gold-border-strong);
+    color: var(--gold); font-family: 'DM Mono', monospace; font-size: 13px;
+    letter-spacing: .1em; text-transform: uppercase; padding: 16px;
+    border-radius: 12px; cursor: pointer; margin-top: 8px; transition: background .2s;
+  }
+  .save-btn:active { background: rgba(180,160,120,.3); }
+  .cancel-link { display: block; text-align: center; margin-top: 14px; font-size: 11px; color: var(--text-faint); cursor: pointer; letter-spacing: .08em; }
+
+  /* ── Detail view ── */
+  .back-btn { background: none; border: none; color: var(--text-faint); cursor: pointer; font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; padding: 0; margin-bottom: 24px; display: flex; align-items: center; gap: 6px; }
+  .detail-day { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 600; color: var(--text); }
+  .detail-date { font-size: 12px; color: var(--text-faint); margin-top: 3px; font-family: 'DM Mono', monospace; }
+  .detail-meta { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+  .detail-lbl { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 7px; }
+  .detail-text { font-family: 'Cormorant Garamond', serif; font-size: 16px; color: rgba(255,255,255,.65); line-height: 1.7; }
+  .detail-block { margin-bottom: 20px; }
+  .detail-intention { font-style: italic; font-size: 17px; color: rgba(255,255,255,.72); }
+  .content-moment-box {
+    background: rgba(180,160,120,.07); border: 1px solid rgba(180,160,120,.25);
+    border-radius: 12px; padding: 18px 20px; margin-top: 24px; margin-bottom: 20px;
+  }
+  .cm-lbl { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: rgba(180,160,120,.6); margin-bottom: 10px; }
+  .cm-text { font-family: 'Cormorant Garamond', serif; font-size: 19px; color: var(--gold); font-style: italic; line-height: 1.5; }
+
+  /* ── Share card ── */
+  #share-canvas-wrap { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.85); z-index: 200; display: none; align-items: center; justify-content: center; padding: 24px; flex-direction: column; gap: 16px; }
+  #share-canvas-wrap.open { display: flex; }
+  #share-canvas { border-radius: 16px; max-width: 100%; box-shadow: 0 40px 80px rgba(0,0,0,.6); }
+  .share-actions { display: flex; gap: 12px; }
+  .share-btn { background: var(--gold-dim); border: 1px solid var(--gold-border); color: var(--gold); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 10px 20px; border-radius: 10px; cursor: pointer; }
+  .share-close { background: rgba(255,255,255,.06); border: 1px solid var(--border); color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 10px 20px; border-radius: 10px; cursor: pointer; }
+
+  .del-btn { background: transparent; border: 1px solid rgba(255,70,70,.2); color: rgba(255,100,100,.4); font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 10px 18px; border-radius: 10px; cursor: pointer; transition: all .2s; }
+  .del-btn:active { border-color: rgba(255,70,70,.5); color: rgba(255,120,120,.7); }
+
+  /* ── Share screen ── */
+  #screen-share h2 { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 400; color: var(--text); margin-bottom: 6px; }
+  .share-intro { font-size: 11px; color: var(--text-faint); margin-bottom: 28px; letter-spacing: .04em; line-height: 1.6; }
+  .share-entry-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: border-color .2s; }
+  .share-entry-card:active { border-color: var(--gold-border); }
+  .share-entry-name { font-family: 'Cormorant Garamond', serif; font-size: 17px; color: var(--text); }
+  .share-entry-sub { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+  .share-arrow { color: var(--gold); font-size: 16px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 0; }
+</style>
+</head>
+<body>
+
+<!-- LIST SCREEN -->
+<div class="screen active" id="screen-list">
+  <div class="eyebrow">Yoga Teacher Training</div>
+  <h1>Practice Log</h1>
+  <p class="subtitle" id="sub-date"></p>
+  <div class="stats">
+    <div class="stat"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">Sessions</div></div>
+    <div class="stat"><div class="stat-val" id="s-time">0</div><div class="stat-lbl">Minutes</div></div>
+    <div class="stat"><div class="stat-val" id="s-month">0</div><div class="stat-lbl">This month</div></div>
+  </div>
+  <button class="add-btn" onclick="goTo('new')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Log today's practice
+  </button>
+  <div id="entries-list"></div>
+</div>
+
+<!-- NEW ENTRY SCREEN -->
+<div class="screen" id="screen-new">
+  <div class="eyebrow">New Entry</div>
+  <h1>Log Practice</h1>
+
+  <div class="form-section">
+    <div class="form-section-title">When</div>
+    <div class="grid2">
+      <div class="field">
+        <label class="lbl">Day</label>
+        <input class="inp" id="f-day" placeholder="Monday" autocomplete="off">
+      </div>
+      <div class="field">
+        <label class="lbl">Date</label>
+        <input class="inp" id="f-date" placeholder="25 Apr 2026" autocomplete="off">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">What</div>
+    <div class="field">
+      <label class="lbl">Practice type</label>
+      <div class="chip-grid" id="types-grid"></div>
+    </div>
+    <div class="field">
+      <label class="lbl">Duration</label>
+      <div class="chip-grid" id="dur-grid"></div>
+    </div>
+    <div class="field">
+      <label class="lbl" id="int-lbl">Intensity</label>
+      <div class="int-row" id="int-grid"></div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">How</div>
+    <div class="field">
+      <label class="lbl">Mood & energy</label>
+      <div class="chip-grid" id="moods-grid"></div>
+    </div>
+    <div class="field">
+      <label class="lbl">Intention</label>
+      <input class="inp" id="f-intention" placeholder="What did you come to the mat for?" autocomplete="off">
+    </div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-section-title">Notes & Reflection</div>
+    <div class="field">
+      <label class="lbl">What happened</label>
+      <textarea class="inp" id="f-notes" placeholder="Poses, breath work, insights, sensations, things to return to..."></textarea>
+    </div>
+    <div class="field">
+      <label class="lbl">Peak pose or breakthrough</label>
+      <input class="inp" id="f-peak" placeholder="e.g. First time holding Warrior III for 10 breaths" autocomplete="off">
+    </div>
+    <div class="field">
+      <label class="lbl">✦ Content moment <span style="font-size:9px;color:rgba(255,255,255,.2);letter-spacing:.04em">(your future caption)</span></label>
+      <input class="inp inp-gold" id="f-highlight" placeholder="One sentence that captures this practice..." autocomplete="off">
+    </div>
+  </div>
+
+  <button class="save-btn" onclick="saveEntry()">Save Practice</button>
+  <span class="cancel-link" onclick="goTo('list')">Cancel</span>
+</div>
+
+<!-- DETAIL SCREEN -->
+<div class="screen" id="screen-detail">
+  <button class="back-btn" onclick="goTo('list')">← All sessions</button>
+  <div id="detail-content"></div>
+</div>
+
+<!-- SHARE SCREEN -->
+<div class="screen" id="screen-share">
+  <div class="eyebrow">Share</div>
+  <h2>Create Share Card</h2>
+  <p class="share-intro">Turn any practice entry into a beautiful card for Instagram Stories or feed posts.</p>
+  <div id="share-list"></div>
+</div>
+
+<!-- Share canvas overlay -->
+<div id="share-canvas-wrap" onclick="closeShareCanvas(event)">
+  <canvas id="share-canvas" width="1080" height="1920"></canvas>
+  <div class="share-actions">
+    <button class="share-btn" onclick="downloadCard()">Save Image</button>
+    <button class="share-close" onclick="document.getElementById('share-canvas-wrap').classList.remove('open')">Close</button>
+  </div>
+</div>
+
+<!-- Bottom nav -->
+<nav>
+  <button id="nav-list" class="active" onclick="goTo('list')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="12" y2="17"/></svg>
+    Log
+  </button>
+  <button id="nav-new" onclick="goTo('new')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Add
+  </button>
+  <button id="nav-share" onclick="goTo('share')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+    Share
+  </button>
+</nav>
+
+<script>
+const TYPES = ["Asana","Pranayama","Meditation","Yin","Restorative","Nidra","Chanting","Teaching","Study"];
+const MOODS = [["🌿","Grounded"],["⚡","Energised"],["🌙","Tired"],["💧","Emotional"],["🎯","Focused"],["🌀","Scattered"],["☁️","Peaceful"],["🪨","Resistant"],["🔥","Powerful"],["🌊","Flowing"]];
+const DURS = ["15 min","30 min","45 min","60 min","75 min","90 min+"];
+const INT_LABELS = ["","Very gentle","Gentle","Moderate","Strong","Intense"];
+const KEY = "yogalog_v1";
+
+let entries = [];
+let formState = { types:[], moods:[], duration:'', intensity:0 };
+let currentView = 'list';
+let shareEntry = null;
+
+// ── Storage ──
+function loadEntries() {
+  try { entries = JSON.parse(localStorage.getItem(KEY)) || []; } catch(e) { entries = []; }
+}
+function saveEntries() {
+  try { localStorage.setItem(KEY, JSON.stringify(entries)); } catch(e){}
+}
+
+// ── Navigation ──
+function goTo(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + screen).classList.add('active');
+  const nb = document.getElementById('nav-' + screen);
+  if(nb) nb.classList.add('active');
+  currentView = screen;
+  if(screen === 'list') renderList();
+  if(screen === 'new') renderForm();
+  if(screen === 'share') renderShareList();
+  window.scrollTo(0,0);
+}
+
+// ── Stats ──
+function updateStats() {
+  const now = new Date();
+  const thisMonth = entries.filter(e => {
+    const d = new Date(e._ts || 0);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+  const totalMin = entries.reduce((a,e) => { const m = (e.duration||'').match(/(\d+)/); return a + (m ? parseInt(m[1]) : 0); }, 0);
+  document.getElementById('s-total').textContent = entries.length;
+  document.getElementById('s-time').textContent = totalMin;
+  document.getElementById('s-month').textContent = thisMonth;
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('sub-date').textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+}
+
+// ── List ──
+function renderList() {
+  updateStats();
+  const el = document.getElementById('entries-list');
+  if(!entries.length) {
+    el.innerHTML = `<div class="empty">Your practice journey<br>begins here.<br><br><span style="font-size:14px;font-style:normal;letter-spacing:.06em;font-family:'DM Mono',monospace;color:rgba(255,255,255,.15)">Log your first session above</span></div>`;
+    return;
+  }
+  el.innerHTML = entries.map((e,i) => {
+    const typeChips = (e.types||[]).map(t => `<span class="chip-type">${t}</span>`).join('');
+    const moodChips = (e.moods||[]).map(m => { const mo = MOODS.find(x=>x[1]===m); return `<span class="chip-mood">${mo?mo[0]:''} ${m}</span>`; }).join('');
+    const dots = e.intensity ? [1,2,3,4,5].map(d=>`<div class="dot ${d<=e.intensity?'dot-on':'dot-off'}"></div>`).join('') : '';
+    const quote = e.highlight ? `<div class="card-quote">"${e.highlight}"</div>` : '';
+    return `<div class="card" onclick="openDetail(${i})">
+      <div class="card-top">
+        <div>
+          <div class="card-day">${e.day||'Session'}</div>
+          <div class="card-date">${e.date||''}</div>
+        </div>
+        <div class="card-right">
+          <div class="card-dur">${e.duration||''}</div>
+          ${dots ? `<div class="dots">${dots}</div>` : ''}
+        </div>
+      </div>
+      <div class="chips">${typeChips}${moodChips}</div>
+      ${quote}
+    </div>`;
+  }).join('');
+}
+
+// ── Form ──
+function renderForm() {
+  formState = { types:[], moods:[], duration:'', intensity:0 };
+
+  // Pre-fill day/date
+  const now = new Date();
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('f-day').value = days[now.getDay()];
+  document.getElementById('f-date').value = now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+  document.getElementById('f-notes').value = '';
+  document.getElementById('f-intention').value = '';
+  document.getElementById('f-peak').value = '';
+  document.getElementById('f-highlight').value = '';
+
+  // Types
+  document.getElementById('types-grid').innerHTML = TYPES.map(t =>
+    `<span class="chip-btn" data-type="${t}" onclick="toggleChip(this,'type')">${t}</span>`
+  ).join('');
+
+  // Durations
+  document.getElementById('dur-grid').innerHTML = DURS.map(d =>
+    `<span class="chip-btn" data-dur="${d}" onclick="selectDur(this,'${d}')">${d}</span>`
+  ).join('');
+
+  // Intensity
+  document.getElementById('int-grid').innerHTML = [1,2,3,4,5].map(i =>
+    `<div class="int-dot" data-int="${i}" onclick="setInt(${i})">${i}</div>`
+  ).join('');
+  document.getElementById('int-lbl').textContent = 'Intensity';
+
+  // Moods
+  document.getElementById('moods-grid').innerHTML = MOODS.map(m =>
+    `<span class="chip-btn" data-mood="${m[1]}" onclick="toggleChip(this,'mood')">${m[0]} ${m[1]}</span>`
+  ).join('');
+}
+
+function toggleChip(el, kind) {
+  el.classList.toggle('on');
+  const val = el.dataset[kind === 'type' ? 'type' : 'mood'];
+  if(kind === 'type') {
+    formState.types = el.classList.contains('on') ? [...formState.types, val] : formState.types.filter(x=>x!==val);
+  } else {
+    formState.moods = el.classList.contains('on') ? [...formState.moods, val] : formState.moods.filter(x=>x!==val);
+  }
+}
+function selectDur(el, dur) {
+  document.querySelectorAll('#dur-grid .chip-btn').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  formState.duration = dur;
+}
+function setInt(n) {
+  formState.intensity = n;
+  document.querySelectorAll('.int-dot').forEach(d => d.classList.toggle('on', parseInt(d.dataset.int) <= n));
+  document.getElementById('int-lbl').textContent = 'Intensity — ' + INT_LABELS[n];
+}
+
+function saveEntry() {
+  const day = document.getElementById('f-day').value.trim();
+  const date = document.getElementById('f-date').value.trim();
+  const notes = document.getElementById('f-notes').value.trim();
+  const intention = document.getElementById('f-intention').value.trim();
+  const peak = document.getElementById('f-peak').value.trim();
+  const highlight = document.getElementById('f-highlight').value.trim();
+  if(!day && !notes) return;
+  entries.unshift({
+    id: Date.now(), _ts: Date.now(),
+    day: day || 'Session', date, notes, intention, peak, highlight,
+    types: [...formState.types], moods: [...formState.moods],
+    duration: formState.duration, intensity: formState.intensity
+  });
+  saveEntries();
+  goTo('list');
+}
+
+// ── Detail ──
+function openDetail(idx) {
+  const e = entries[idx];
+  shareEntry = e;
+  const typeChips = (e.types||[]).map(t=>`<span class="chip-type">${t}</span>`).join('');
+  const moodChips = (e.moods||[]).map(m=>{ const mo=MOODS.find(x=>x[1]===m); return `<span class="chip-mood">${mo?mo[0]:''} ${m}</span>`; }).join('');
+  const dots = e.intensity ? [1,2,3,4,5].map(d=>`<div class="dot ${d<=e.intensity?'dot-on':'dot-off'}" style="width:7px;height:7px"></div>`).join('') : '';
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-meta">
+      <div>
+        <div class="detail-day">${e.day||'Session'}</div>
+        <div class="detail-date">${e.date||''}</div>
+      </div>
+      <div class="card-right">
+        <div class="card-dur" style="font-size:15px">${e.duration||''}</div>
+        ${dots?`<div class="dots" style="justify-content:flex-end;margin-top:6px">${dots}</div>`:''}
+      </div>
+    </div>
+    <div class="chips" style="margin-bottom:24px">${typeChips}${moodChips}</div>
+    ${e.intention?`<div class="detail-block"><div class="detail-lbl">Intention</div><div class="detail-text detail-intention">${e.intention}</div></div>`:''}
+    ${e.notes?`<div class="detail-block"><div class="detail-lbl">Notes</div><div class="detail-text">${e.notes}</div></div>`:''}
+    ${e.peak?`<div class="detail-block"><div class="detail-lbl">Peak / breakthrough</div><div class="detail-text">${e.peak}</div></div>`:''}
+    ${e.highlight?`<div class="content-moment-box"><div class="cm-lbl">✦ Content moment</div><div class="cm-text">"${e.highlight}"</div></div>`:''}
+    <div style="display:flex;gap:10px;margin-top:8px">
+      ${e.highlight||e.notes?`<button class="save-btn" style="flex:1" onclick="generateCard()">Create Share Card</button>`:''}
+    </div>
+    <div style="text-align:center;margin-top:14px">
+      <button class="del-btn" onclick="deleteEntry(${idx})">Delete entry</button>
+    </div>
+  `;
+  goTo('detail');
+}
+
+function deleteEntry(idx) {
+  entries.splice(idx, 1);
+  saveEntries();
+  goTo('list');
+}
+
+// ── Share list ──
+function renderShareList() {
+  const el = document.getElementById('share-list');
+  const shareable = entries.filter(e => e.highlight || e.notes);
+  if(!shareable.length) {
+    el.innerHTML = `<div class="empty" style="font-size:15px">No entries yet.<br>Log a practice to create share cards.</div>`;
+    return;
+  }
+  el.innerHTML = shareable.map(e => `
+    <div class="share-entry-card" onclick="openShareCard('${e.id}')">
+      <div>
+        <div class="share-entry-name">${e.day||'Session'} — ${e.date||''}</div>
+        <div class="share-entry-sub">${(e.types||[]).join(', ')||'Practice'} · ${e.duration||''}</div>
+      </div>
+      <div class="share-arrow">→</div>
+    </div>
+  `).join('');
+}
+
+function openShareCard(id) {
+  shareEntry = entries.find(e => e.id == id);
+  generateCard();
+}
+
+// ── Share card canvas ──
+function generateCard() {
+  if(!shareEntry) return;
+  const e = shareEntry;
+  const canvas = document.getElementById('share-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = 1080, H = 1920;
+  canvas.width = W; canvas.height = H;
+
+  // Background
+  const bg = ctx.createLinearGradient(0, 0, W*0.6, H);
+  bg.addColorStop(0, '#12100d');
+  bg.addColorStop(0.5, '#1a1710');
+  bg.addColorStop(1, '#0f0e0b');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle grain texture
+  for(let i = 0; i < 18000; i++) {
+    const x = Math.random() * W, y = Math.random() * H;
+    ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.018})`;
+    ctx.fillRect(x, y, 1, 1);
+  }
+
+  // Decorative gold line top
+  ctx.strokeStyle = 'rgba(180,160,120,0.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(80, 100); ctx.lineTo(W-80, 100); ctx.stroke();
+
+  // Eyebrow
+  ctx.font = '500 28px DM Mono, monospace';
+  ctx.fillStyle = 'rgba(180,160,120,0.55)';
+  ctx.letterSpacing = '8px';
+  ctx.fillText('YOGA PRACTICE LOG', 80, 160);
+
+  // Day
+  ctx.font = '300 140px Cormorant Garamond, serif';
+  ctx.fillStyle = '#e8dcc8';
+  ctx.fillText(e.day || 'Practice', 80, 310);
+
+  // Date + duration
+  ctx.font = '400 36px DM Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillText((e.date || '') + (e.date && e.duration ? '  ·  ' : '') + (e.duration || ''), 80, 380);
+
+  // Type chips drawn as text
+  if((e.types||[]).length) {
+    ctx.font = '400 28px DM Mono, monospace';
+    ctx.fillStyle = '#c9b48a';
+    ctx.fillText((e.types||[]).join('  /  ').toUpperCase(), 80, 450);
+  }
+
+  // Divider
+  ctx.strokeStyle = 'rgba(180,160,120,0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(80, 510); ctx.lineTo(W-80, 510); ctx.stroke();
+
+  // Intensity dots
+  if(e.intensity) {
+    let dx = 80;
+    for(let i=1;i<=5;i++) {
+      ctx.beginPath();
+      ctx.arc(dx + 20, 570, 14, 0, Math.PI*2);
+      ctx.fillStyle = i <= e.intensity ? '#c9b48a' : 'rgba(255,255,255,0.12)';
+      ctx.fill();
+      dx += 52;
+    }
+    ctx.font = '400 26px DM Mono, monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillText((['','VERY GENTLE','GENTLE','MODERATE','STRONG','INTENSE'][e.intensity]), 80+5*52+20, 582);
+  }
+
+  // Mood tags
+  if((e.moods||[]).length) {
+    ctx.font = '400 30px DM Mono, monospace';
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    const moodStr = e.moods.map(m => { const mo=MOODS.find(x=>x[1]===m); return (mo?mo[0]+' ':'')+m; }).join('   ');
+    ctx.fillText(moodStr, 80, 650);
+  }
+
+  // Intention
+  if(e.intention) {
+    ctx.font = 'italic 300 48px Cormorant Garamond, serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    wrapText(ctx, '"' + e.intention + '"', 80, 760, W-160, 64);
+  }
+
+  // Content moment — the hero
+  if(e.highlight) {
+    // Gold accent box
+    ctx.strokeStyle = 'rgba(180,160,120,0.3)';
+    ctx.lineWidth = 1;
+    const boxY = e.intention ? 980 : 760;
+    roundRect(ctx, 60, boxY, W-120, 600, 24);
+    ctx.fillStyle = 'rgba(180,160,120,0.06)';
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.font = '400 26px DM Mono, monospace';
+    ctx.fillStyle = 'rgba(180,160,120,0.6)';
+    ctx.fillText('✦  CONTENT MOMENT', 100, boxY + 60);
+
+    ctx.font = 'italic 400 62px Cormorant Garamond, serif';
+    ctx.fillStyle = '#c9b48a';
+    wrapText(ctx, '"' + e.highlight + '"', 100, boxY + 130, W-200, 80);
+  }
+
+  // Notes excerpt (if no highlight)
+  if(!e.highlight && e.notes) {
+    ctx.font = 'italic 300 48px Cormorant Garamond, serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    const excerpt = e.notes.length > 200 ? e.notes.substring(0,197)+'...' : e.notes;
+    wrapText(ctx, excerpt, 80, 820, W-160, 64);
+  }
+
+  // Bottom line
+  ctx.strokeStyle = 'rgba(180,160,120,0.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(80, H-120); ctx.lineTo(W-80, H-120); ctx.stroke();
+
+  // Signature
+  ctx.font = '300 30px DM Mono, monospace';
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.fillText('practice log', 80, H-70);
+
+  // Show
+  canvas.style.maxHeight = (window.innerHeight * 0.7) + 'px';
+  canvas.style.width = 'auto';
+  document.getElementById('share-canvas-wrap').classList.add('open');
+}
+
+function wrapText(ctx, text, x, y, maxW, lineH) {
+  const words = text.split(' ');
+  let line = '', ly = y;
+  for(let w of words) {
+    const test = line + w + ' ';
+    if(ctx.measureText(test).width > maxW && line) {
+      ctx.fillText(line.trim(), x, ly);
+      line = w + ' '; ly += lineH;
+    } else { line = test; }
+  }
+  if(line.trim()) ctx.fillText(line.trim(), x, ly);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y); ctx.arcTo(x+w, y, x+w, y+r, r);
+  ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx.lineTo(x+r, y+h); ctx.arcTo(x, y+h, x, y+h-r, r);
+  ctx.lineTo(x, y+r); ctx.arcTo(x, y, x+r, y, r);
+  ctx.closePath();
+}
+
+function closeShareCanvas(e) {
+  if(e.target === document.getElementById('share-canvas-wrap')) {
+    document.getElementById('share-canvas-wrap').classList.remove('open');
+  }
+}
+
+function downloadCard() {
+  const canvas = document.getElementById('share-canvas');
+  const link = document.createElement('a');
+  link.download = 'practice-' + (shareEntry?.day||'session').toLowerCase().replace(/\s/g,'-') + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// ── Init ──
+loadEntries();
+renderList();
+</script>
+</body>
+</html>
